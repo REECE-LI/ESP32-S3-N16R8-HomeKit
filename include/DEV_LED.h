@@ -5,128 +5,100 @@
 #include "HomeSpan.h"
 // HERE'S WHERE WE DEFINE OUR NEW LED SERVICE!
 
-struct DEV_LED : Service::LightBulb {               // First we create a derived class from the HomeSpan LightBulb Service
+struct DEV_LED
+        : Service::LightBulb {               // First we create a derived class from the HomeSpan LightBulb Service
 
-  int ledPin;                                       // this variable stores the pin number defined for this LED
-  SpanCharacteristic *power;                        // here we create a generic pointer to a SpanCharacteristic named "power" that we will use below
+    int ledPin;                                       // this variable stores the pin number defined for this LED
+    SpanCharacteristic *power;                        // here we create a generic pointer to a SpanCharacteristic named "power" that we will use below
 
-  // Next we define the constructor for DEV_LED.  Note that it takes one argument, ledPin,
-  // which specifies the pin to which the LED is attached.
-  
-  DEV_LED(int ledPin) : Service::LightBulb(){
+    // Next we define the constructor for DEV_LED.  Note that it takes one argument, ledPin,
+    // which specifies the pin to which the LED is attached.
 
-    power=new Characteristic::On();                 // this is where we create the On Characterstic we had previously defined in setup().  Save this in the pointer created above, for use below
-    this->ledPin=ledPin;                            // don't forget to store ledPin...
-    pinMode(ledPin,OUTPUT);                         // ...and set the mode for ledPin to be an OUTPUT (standard Arduino function)
-    
-  } // end constructor
+    DEV_LED(int ledPin) : Service::LightBulb() {
 
-  // Finally, we over-ride the default update() method with instructions that actually turn on/off the LED.  Note update() returns type boolean
+        power = new Characteristic::On();                 // this is where we create the On Characterstic we had previously defined in setup().  Save this in the pointer created above, for use below
+        this->ledPin = ledPin;                            // don't forget to store ledPin...
+        pinMode(ledPin,
+                OUTPUT);                         // ...and set the mode for ledPin to be an OUTPUT (standard Arduino function)
 
-  boolean update(){            
+    } // end constructor
 
-    digitalWrite(ledPin,power->getNewVal());        // use a standard Arduino function to turn on/off ledPin based on the return of a call to power->getNewVal() (see below for more info)
-   
-    return(true);                                   // return true to indicate the update was successful (otherwise create code to return false if some reason you could not turn on the LED)
-  
-  } // update
+    // Finally, we over-ride the default update() method with instructions that actually turn on/off the LED.  Note update() returns type boolean
+
+    boolean update() {
+
+        digitalWrite(ledPin,
+                     power->getNewVal());        // use a standard Arduino function to turn on/off ledPin based on the return of a call to power->getNewVal() (see below for more info)
+
+        return (true);                                   // return true to indicate the update was successful (otherwise create code to return false if some reason you could not turn on the LED)
+
+    } // update
 };
 
 #include "FastLED.h"
-extern CRGB leds[];
-struct DEV_RgbLED : Service::LightBulb {       // RGB LED (Command Cathode)
 
-  LedPin *redPin, *greenPin, *bluePin;
+//extern CRGB leds[];
 
-  SpanCharacteristic *power;                   // reference to the On Characteristic
-  SpanCharacteristic *H;                       // reference to the Hue Characteristic
-  SpanCharacteristic *S;                       // reference to the Saturation Characteristic
-  SpanCharacteristic *V;                       // reference to the Brightness Characteristic
+struct DEV_Ws2812LED : Service::LightBulb {       // RGB LED (Command Cathode)
 
-  DEV_RgbLED(int red_pin, int green_pin, int blue_pin) : Service::LightBulb(){       // constructor() method
+    CRGB *Leds;
+    int ledNum;
 
-    power=new Characteristic::On();
-    H=new Characteristic::Hue(0);              // instantiate the Hue Characteristic with an initial value of 0 out of 360
-    S=new Characteristic::Saturation(0);       // instantiate the Saturation Characteristic with an initial value of 0%
-    V=new Characteristic::Brightness(100);     // instantiate the Brightness Characteristic with an initial value of 100%
-    V->setRange(5,100,1);                      // sets the range of the Brightness to be from a min of 5%, to a max of 100%, in steps of 1%
+    SpanCharacteristic *power;                   // reference to the On Characteristic
+    SpanCharacteristic *H;                       // reference to the Hue Characteristic
+    SpanCharacteristic *S;                       // reference to the Saturation Characteristic
+    SpanCharacteristic *V;                       // reference to the Brightness Characteristic
 
-//    this->redPin=new LedPin(red_pin);        // configures a PWM LED for output to the RED pin
-//    this->greenPin=new LedPin(green_pin);    // configures a PWM LED for output to the GREEN pin
-//    this->bluePin=new LedPin(blue_pin);      // configures a PWM LED for output to the BLUE pin
+    DEV_Ws2812LED(CRGB *_Leds, int _ledNum) : Service::LightBulb() {       // constructor() method
+        Leds = _Leds;
+        ledNum = _ledNum;
+        power = new Characteristic::On();
+        H = new Characteristic::Hue(0);
+        S = new Characteristic::Saturation(0);
+        V = new Characteristic::Brightness(0);
+    } // end constructor
 
-//    char cBuf[128];
-//    sprintf(cBuf,"Configuring RGB LED: Pins=(%d,%d,%d)\n",redPin->getPin(),greenPin->getPin(),bluePin->getPin());
-//    Serial.print(cBuf);
+    boolean update() {                         // update() method
+        static int p, v, h, s;
 
-  } // end constructor
+        if (H->updated()) {
+            h = H->getNewVal<int>();
+            h = map(h, 0, 360, 0, 255);
+        }
 
-  boolean update(){                         // update() method
-    Serial.println("Updating RGB LED 1");
+        if (S->updated()) {
+            s = S->getNewVal<int>();
+            s = map(s, 0, 100, 0, 255);
+        }
 
-//    boolean p;
-//    float v, h, s;
+        if (V->updated()) {
+            v = V->getNewVal<int>();
+            v = map(v, 0, 100, 0, 255);
+        }
 
-//    h=H->getVal<float>();                      // get and store all current values.  Note the use of the <float> template to properly read the values
-//    s=S->getVal<float>();
-//    v=V->getVal<float>();                      // though H and S are defined as FLOAT in HAP, V (which is brightness) is defined as INT, but will be re-cast appropriately
-//    p=power->getVal();
+        if (power->updated()) {
+            p = power->getNewVal<int>();
+        }
 
-    leds[0] = CRGB::Red;
-    FastLED.show();
+#if 0
+        // print h s v p
+        Serial.print("h: ");
+        Serial.println(h);
+        Serial.print("s: ");
+        Serial.println(s);
+        Serial.print("v: ");
+        Serial.println(v);
+        Serial.print("p: ");
+        Serial.println(p);
+#endif
 
-    Serial.print("Updating RGB LED 2");
-//    char cBuf[128];
-//    sprintf(cBuf,"Updating RGB LED: Pins=(%d,%d,%d): ",redPin->getPin(),greenPin->getPin(),bluePin->getPin());
-//    Serial.println(cBuf);
-//    Serial.print("Updating RGB LED 3");
-//    if(power->updated()){
-//      p=power->getNewVal();
-//      sprintf(cBuf,"Power=%s->%s, ",power->getVal()?"true":"false",p?"true":"false");
-//    } else {
-//      sprintf(cBuf,"Power=%s, ",p?"true":"false");
-//    }
-//    Serial.println(cBuf);
-//    Serial.print("Updating RGB LED 4");
-//    if(H->updated()){
-//      h=H->getNewVal<float>();
-//      sprintf(cBuf,"H=%.0f->%.0f, ",H->getVal<float>(),h);
-//    } else {
-//      sprintf(cBuf,"H=%.0f, ",h);
-//    }
-//    Serial.println(cBuf);
-//Serial.print("Updating RGB LED 5");
-//    if(S->updated()){
-//      s=S->getNewVal<float>();
-//      sprintf(cBuf,"S=%.0f->%.0f, ",S->getVal<float>(),s);
-//    } else {
-//      sprintf(cBuf,"S=%.0f, ",s);
-//    }
-//    Serial.println(cBuf);
-//Serial.print("Updating RGB LED 6");
-//    if(V->updated()){
-//      v=V->getNewVal<float>();
-//      sprintf(cBuf,"V=%.0f->%.0f  ",V->getVal<float>(),v);
-//    } else {
-//      sprintf(cBuf,"V=%.0f  ",v);
-//    }
-//    Serial.println(cBuf);
+        Leds[0] = CHSV((uint8_t) h, (uint8_t) s, (uint8_t) v);
+        FastLED.setBrightness(p ? 255 : 0);
+        FastLED.show();
 
-    // Here we call a static function of LedPin that converts HSV to RGB.
-    // Parameters must all be floats in range of H[0,360], S[0,1], and V[0,1]
-    // R, G, B, returned [0,1] range as well
+        return (true);                               // return true
 
-//    LedPin::HSVtoRGB(h,s/100.0,v/100.0,&r,&g,&b);   // since HomeKit provides S and V in percent, scale down by 100
-
-//    Serial.println(cBuf);
-
-//    redPin->set(R);                      // update each ledPin with new values
-//    greenPin->set(G);
-//    bluePin->set(B);
-
-    return(true);                               // return true
-
-  } // update
+    } // update
 };
 
 
@@ -136,7 +108,7 @@ struct DEV_RgbLED : Service::LightBulb {       // RGB LED (Command Cathode)
 
 
 
-      
+
 //////////////////////////////////
 
 // HOW update() WORKS:

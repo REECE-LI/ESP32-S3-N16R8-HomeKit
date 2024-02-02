@@ -26,7 +26,7 @@ void setup() {
     new SpanAccessory();
     new Service::AccessoryInformation();
     new Characteristic::Identify();
-    new DEV_RgbLED(17, 18, 19);
+    new DEV_Ws2812LED(leds, NUM_LEDS);
 
     leds[0] = CRGB::Black;
     FastLED.show();
